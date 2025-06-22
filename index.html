@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" >
 <head>
+<!-- Add this to head -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Life Goal Tracker</title>
@@ -520,6 +523,14 @@
   </nav>
 
   <script>
+ // Register service worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.error('Service Worker failed:', err));
+    });
+  }
     // ======= CLOCK =======
     const clockEl = document.getElementById("clock");
     function updateClock() {
