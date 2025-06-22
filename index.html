@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Life Goal Tracker</title>
+  <style>
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .light-mode {
+      background: linear-gradient(135deg, #f0f0f0 0%, #d9d9d9 100%);
+      color: #111;
+    }
+
+    /* Container for app content, below fixed header and above tabs */
+    #app-container {
+      flex: 1;
+      /* Adjusted padding-top to ensure content is visible below the fixed header */
+      padding: 140px 20px 70px; /* leave space for fixed header and bottom tabs */
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Fixed header with clock and quote */
+    #header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(25,25,25,0.95);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      text-align: center;
+      /* Increased padding-bottom to account for larger fixed header area */
+      padding: 10px 20px 20px;
+      z-index: 9999;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+      user-select: none;
+    }
+    .light-mode #header {
+      background: rgba(245,245,245,0.95);
+      color: #222;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    #clock {
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      font-family: "Courier New", Courier, monospace;
+    }
+
+    #quote-box {
+      font-size: 1.4rem;
+      font-weight: 600;
+      font-style: italic;
+      max-width: 90%;
+      margin: 0 auto;
+      transition: opacity 0.6s ease;
+      min-height: 2.4rem;
+    }
+
+    /* Tabs content */
+    .tab-content {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .tab-content.active {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Progress bar */
+    #life-progress-container {
+      height: 24px;
+      width: 100%;
+      background: #333;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 10px 0 15px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.4);
+    }
+    .light-mode #life-progress-container {
+      background: #ccc;
+      box-shadow: inset 0 2px 5px rgba(255,255,255,0.8);
+    }
+    #life-progress-bar {
+      height: 100%;
+      background: #4caf50;
+      width: 0;
+      transition: width 0.7s ease;
+      border-radius: 12px 0 0 12px;
+      box-shadow: 0 0 12px 1px #4caf50aa;
+    }
+
+    #life-progress-text {
+      text-align: center;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    /* Headings */
+    h2 {
+      margin: 15px 0 10px;
+      font-weight: 700;
+      border-bottom: 2px solid #4caf50;
+      padding-bottom: 6px;
+      color: #4caf50;
+    }
+    .light-mode h2 {
+      color: #2e7d32;
+      border-color: #2e7d32;
+    }
+
+    /* Inputs and buttons */
+    input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      padding: 10px 14px;
+      margin: 5px 0 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #222;
+      color: #eee;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.7);
+      transition: background 0.3s, color 0.3s;
+      resize: vertical;
+      font-family: inherit;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+      outline: none;
+      background: #333;
+      box-shadow: 0 0 6px #4caf50;
+      color: #fff;
+    }
+    .light-mode input[type="text"],
+    .light-mode input[type="number"],
+    .light-mode textarea {
+      background: #fafafa;
+      color: #111;
+      box-shadow: inset 0 2px 5px #ddd;
+    }
+    .light-mode input[type="text"]:focus,
+    .light-mode input[type="number"]:focus,
+    .light-mode textarea:focus {
+      background: #fff;
+      box-shadow: 0 0 8px #2e7d32;
+      color: #000;
+    }
+
+    button {
+      background: #4caf50;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 10px #4caf50aa;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      user-select: none;
+    }
+    button:hover {
+      background: #388e3c;
+      box-shadow: 0 6px 14px #388e3cbb;
+    }
+    button:active {
+      background: #2e7d32;
+      box-shadow: 0 2px 6px #2e7d32cc;
+      transform: scale(0.98);
+    }
+    button:disabled {
+      background: #777;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Lists */
+    ul {
+      list-style: none;
+      padding-left: 0;
+      margin-bottom: 20px;
+    }
+    li {
+      background: #222;
+      margin-bottom: 10px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    li.completed {
+      text-decoration: line-through;
+      color: #888;
+      background: #2a2a2a;
+      cursor: default;
+    }
+    li:hover:not(.completed) {
+      background: #333;
+    }
+    .delete-btn {
+      background: #d32f2f;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 6px #d32f2fcc;
+      user-select: none;
+    }
+    .delete-btn:hover {
+      background: #b71c1c;
+      box-shadow: 0 3px 8px #b71c1ccc;
+    }
+
+    /* Checkboxes inside list */
+    li input[type="checkbox"] {
+      margin-right: 12px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    /* Daily goals fixed checkbox label */
+    li span {
+      user-select: none;
+      margin-left: 6px;
+      font-size: 0.85rem;
+      color: #aaa;
+      cursor: default;
+    }
+
+    /* Water intake jar */
+    #water-glass {
+      width: 140px;
+      height: 110px;
+      margin: 10px auto 15px;
+      border-radius: 12px;
+      border: 3px solid #4caf50;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 15px #4caf50aa;
+      background: #111;
+    }
+    #water-level {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 0;
+      background: #4caf50;
+      border-radius: 0 0 12px 12px;
+      transition: height 0.7s ease;
+      box-shadow: inset 0 4px 12px #66bb6a;
+    }
+    #water-info {
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    #water-add-btn, #water-reset-btn {
+      width: 48%;
+      margin: 0 1% 15px 1%;
+      display: inline-block;
+    }
+
+    /* Fitness routine day switcher */
+    #day-switcher {
+      text-align: center;
+      margin: 10px 0 10px;
+      user-select: none;
+    }
+    #day-switcher button {
+      font-size: 1.3rem;
+      background: transparent;
+      color: #4caf50;
+      border-radius: 6px;
+      padding: 5px 15px;
+      font-weight: 700;
+      box-shadow: none;
+      transition: color 0.3s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    #day-switcher button:hover {
+      color: #388e3c;
+    }
+    .light-mode #day-switcher button {
+      color: #2e7d32;
+    }
+    #day-display {
+      font-weight: 700;
+      font-size: 1.3rem;
+      margin: 0 15px;
+      display: inline-block;
+      user-select: none;
+    }
+    textarea#fitness-routine-input {
+      min-height: 110px;
+      font-size: 1rem;
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    /* Prayer tracker boxes */
+    .prayer-box {
+      background: #222;
+      margin-bottom: 10px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 7px rgba(0,0,0,0.6);
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+    .prayer-box span {
+      font-weight: 400;
+      font-size: 0.9rem;
+      color: #ccc;
+      user-select: none;
+    }
+    .prayer-box:hover {
+      background: #333;
+    }
+    .prayer-box.done {
+      background: #4caf50;
+      color: white;
+      box-shadow: 0 0 12px #4caf50cc;
+    }
+    .light-mode .prayer-box {
+      background: #eee;
+      color: #222;
+      box-shadow: 0 2px 8px #bbb;
+    }
+    .light-mode .prayer-box.done {
+      background: #2e7d32;
+      color: white;
+      box-shadow: 0 0 14px #2e7d3299;
+    }
+
+    /* Tabs container bottom fixed */
+    .tab-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 55px;
+      background: #111;
+      display: flex;
+      border-top: 1px solid #444;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.8);
+      user-select: none;
+      z-index: 9999;
+    }
+    .light-mode .tab-container {
+      background: #ddd;
+      border-color: #bbb;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+    .tab-button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: #ccc;
+      font-weight: 600;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: color 0.3s ease;
+      outline-offset: 2px;
+    }
+    .tab-button:hover {
+      color: #4caf50;
+    }
+    .tab-button.active {
+      color: #4caf50;
+      border-top: 3px solid #4caf50;
+      box-shadow: 0 -3px 8px #4caf50aa;
+      cursor: default;
+    }
+    .light-mode .tab-button {
+      color: #555;
+    }
+    .light-mode .tab-button.active {
+      color: #2e7d32;
+      border-top-color: #2e7d32;
+      box-shadow: 0 -3px 8px #2e7d3299;
+    }
+
+    /* Accessibility focus for tabs */
+    .tab-button:focus-visible {
+      outline: 2px solid #4caf50;
+      outline-offset: 2px;
+    }
+
+    /* Scrollbar for fitness routine */
+    textarea#fitness-routine-input {
+      resize: vertical;
+      scrollbar-width: thin;
+      scrollbar-color: #4caf50 #222;
+    }
+    textarea#fitness-routine-input::-webkit-scrollbar {
+      width: 8px;
+    }
+    textarea#fitness-routine-input::-webkit-scrollbar-thumb {
+      background-color: #4caf50;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="header" role="banner" aria-live="polite" aria-atomic="true">
+    <div id="clock" aria-label="Current time"></div>
+    <div id="quote-box" aria-live="polite" aria-atomic="true">Stay motivated!</div>
+  </div>
+
+  <div id="app-container" role="main" tabindex="-1">
+    <section id="tab-home" class="tab-content active" aria-label="Home tab">
+      <div id="life-progress-container" aria-label="Life goal progress">
+        <div id="life-progress-bar"></div>
+      </div>
+      <div id="life-progress-text" aria-live="polite" aria-atomic="true">0% Completed</div>
+
+      <div id="life-goal-input-container">
+        <input type="text" id="life-goal-input" placeholder="What is your life goal?" aria-label="Life goal input" />
+        <button id="save-life-goal-btn" aria-label="Save life goal">Save</button>
+      </div>
+      <h2 id="life-goal-display"></h2>
+
+      <div id="subgoal-section">
+        <input type="text" id="subgoal-input" placeholder="Add sub goal" aria-label="Subgoal input" />
+        <button id="add-subgoal-btn" aria-label="Add subgoal">Add Subgoal</button>
+        <ul id="subgoal-list"></ul>
+      </div>
+
+      <h2>Daily Goals</h2>
+      <input type="text" id="daily-goal-input" placeholder="Add a daily goal" aria-label="Daily goal input" />
+      <label>
+        <input type="checkbox" id="fix-daily-goal" aria-label="Keep daily goal fixed" />
+        Keep fixed
+      </label>
+      <button id="add-daily-goal-btn" aria-label="Add daily goal">Add</button>
+      <ul id="daily-goal-list"></ul>
+
+      <h2>Daily Water Intake</h2>
+      <label for="water-goal-input">Set Goal (L):</label>
+      <input
+        type="number"
+        id="water-goal-input"
+        min="1"
+        max="20"
+        value="2"
+        aria-label="Water intake goal in liters"
+      />
+      <div id="water-glass" aria-label="Water intake glass">
+        <div id="water-level"></div>
+      </div>
+      <button id="water-add-btn" aria-label="Add 1 liter water">Add 1L</button>
+      <button id="water-reset-btn" aria-label="Reset water intake">Reset</button>
+      <div id="water-info" aria-live="polite" aria-atomic="true"></div>
+    </section>
+
+    <section id="tab-fitness" class="tab-content" aria-label="Fitness routine tab">
+      <h2>Fitness Routine</h2>
+      <div id="day-switcher" role="tablist" aria-label="Select day of week for fitness routine">
+        <button id="prev-day" role="tab" aria-selected="false" tabindex="-1" aria-label="Previous day">&#9664;</button>
+        <span id="day-display" role="presentation">Sunday</span>
+        <button id="next-day" role="tab" aria-selected="false" tabindex="-1" aria-label="Next day">&#9654;</button>
+      </div>
+      <textarea
+        id="fitness-routine-input"
+        placeholder="Write your fitness routine here..."
+        aria-label="Fitness routine input"
+      ></textarea>
+      <button id="save-fitness-btn" aria-label="Save fitness routine">Save Routine</button>
+    </section>
+
+    <section id="tab-prayer" class="tab-content" aria-label="Prayer tracker tab">
+      <h2>Prayer Tracker</h2>
+      <div class="prayer-box" data-prayer="fajr" tabindex="0" role="checkbox" aria-checked="false">Fajr <span>5:00 AM</span></div>
+      <div class="prayer-box" data-prayer="dhuhr" tabindex="0" role="checkbox" aria-checked="false">Dhuhr <span>1:00 PM</span></div>
+      <div class="prayer-box" data-prayer="asr" tabindex="0" role="checkbox" aria-checked="false">Asr <span>4:30 PM</span></div>
+      <div class="prayer-box" data-prayer="maghrib" tabindex="0" role="checkbox" aria-checked="false">Maghrib <span>6:30 PM</span></div>
+      <div class="prayer-box" data-prayer="isha" tabindex="0" role="checkbox" aria-checked="false">Isha <span>8:00 PM</span></div>
+    </section>
+
+    <section id="tab-settings" class="tab-content" aria-label="Settings tab">
+      <h2>Settings</h2>
+      <button id="settings-theme-toggle" aria-pressed="false" aria-label="Toggle light or dark mode">Toggle Mode</button>
+    </section>
+  </div>
+
+  <nav class="tab-container" role="tablist" aria-label="Main navigation tabs">
+    <button class="tab-button active" data-tab="tab-home" role="tab" aria-selected="true" tabindex="0" aria-controls="tab-home" id="tab-btn-home">Home</button>
+    <button class="tab-button" data-tab="tab-fitness" role="tab" aria-selected="false" tabindex="-1" aria-controls="tab-fitness" id="tab-btn-fitness">Fitness</button>
+    <button class="tab-button" data-tab="tab-prayer" role="tab" aria-selected="false" tabindex="-1" aria-controls="tab-prayer" id="tab-btn-prayer">Prayer</button>
+    <button class="tab-button" data-tab="tab-settings" role="tab" aria-selected="false" tabindex="-1" aria-controls="tab-settings" id="tab-btn-settings">Settings</button>
+  </nav>
+
+  <script>
+    // ======= CLOCK =======
+    const clockEl = document.getElementById("clock");
+    function updateClock() {
+      const now = new Date();
+      const h = now.getHours().toString().padStart(2, "0");
+      const m = now.getMinutes().toString().padStart(2, "0");
+      const s = now.getSeconds().toString().padStart(2, "0");
+      clockEl.textContent = `${h}:${m}:${s}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ======= QUOTES =======
+    const quotes = [
+      "Believe you can and you're halfway there.",
+      "Dream it. Wish it. Do it.",
+      "Success doesn’t just find you. You have to go out and get it.",
+      "The harder you work, the greater you’ll feel when you achieve it.",
+      "Do something today that your future self will thank you for."
+    ];
+    const quoteBox = document.getElementById("quote-box");
+    let lastQuoteIndex = -1;
+
+    function showQuote() {
+      let index;
+      do {
+        index = Math.floor(Math.random() * quotes.length);
+      } while (index === lastQuoteIndex);
+      lastQuoteIndex = index;
+      // Fade out then in
+      quoteBox.style.opacity = 0;
+      setTimeout(() => {
+        quoteBox.textContent = quotes[index];
+        quoteBox.style.opacity = 1;
+      }, 500);
+    }
+    showQuote();
+    // Change quote every 2 hours (7200000 ms)
+    setInterval(showQuote, 7200000);
+
+    // ======= TAB SYSTEM =======
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabContents = document.querySelectorAll(".tab-content");
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        // Deactivate all tabs
+        tabButtons.forEach(b => {
+          b.classList.remove("active");
+          b.setAttribute("aria-selected", "false");
+          b.tabIndex = -1;
+        });
+        tabContents.forEach(tc => tc.classList.remove("active"));
+
+        // Activate selected tab
+        btn.classList.add("active");
+        btn.setAttribute("aria-selected", "true");
+        btn.tabIndex = 0;
+
+        const tabId = btn.getAttribute("data-tab");
+        document.getElementById(tabId).classList.add("active");
+        // Focus main container on tab switch for accessibility
+        document.getElementById(tabId).focus();
+      });
+    });
+
+    // ======= THEME TOGGLE =======
+    const themeToggleBtn = document.getElementById("settings-theme-toggle");
+    function toggleTheme() {
+      document.body.classList.toggle("light-mode");
+      const isLight = document.body.classList.contains("light-mode");
+      themeToggleBtn.setAttribute("aria-pressed", isLight ? "true" : "false");
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+    }
+    themeToggleBtn.addEventListener("click", toggleTheme);
+
+    // Load saved theme
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light-mode");
+      themeToggleBtn.setAttribute("aria-pressed", "true");
+    }
+
+    // ======= LIFE GOAL + SUBGOALS =======
+    const lifeGoalInput = document.getElementById("life-goal-input");
+    const saveLifeGoalBtn = document.getElementById("save-life-goal-btn");
+    const lifeGoalDisplay = document.getElementById("life-goal-display");
+    const subgoalInput = document.getElementById("subgoal-input");
+    const addSubgoalBtn = document.getElementById("add-subgoal-btn");
+    const subgoalList = document.getElementById("subgoal-list");
+    const lifeProgressBar = document.getElementById("life-progress-bar");
+    const lifeProgressText = document.getElementById("life-progress-text");
+    const lifeGoalInputContainer = document.getElementById("life-goal-input-container");
+
+    let lifeGoal = localStorage.getItem("lifeGoal") || "";
+    let subgoals = JSON.parse(localStorage.getItem("subgoals") || "[]");
+
+    function saveLifeGoal() {
+      if (lifeGoalInput.value.trim() === "") return alert("Please enter a life goal.");
+      lifeGoal = lifeGoalInput.value.trim();
+      localStorage.setItem("lifeGoal", lifeGoal);
+      lifeGoalInputContainer.style.display = "none";
+      lifeGoalDisplay.textContent = lifeGoal;
+      updateProgress();
+      saveSubgoals();
+    }
+
+    function saveSubgoals() {
+      localStorage.setItem("subgoals", JSON.stringify(subgoals));
+    }
+
+    function updateProgress() {
+      if (subgoals.length === 0) {
+        lifeProgressBar.style.width = "0%";
+        lifeProgressText.textContent = "0% Completed";
+        return;
+      }
+      const doneCount = subgoals.filter(sg => sg.completed).length;
+      const percent = Math.round((doneCount / subgoals.length) * 100);
+      lifeProgressBar.style.width = percent + "%";
+      lifeProgressText.textContent = `${percent}% Completed`;
+
+      if (percent === 100) {
+        // Goal complete, reset for new
+        alert("Congrats! Life goal completed. Please add a new one.");
+        lifeGoal = "";
+        subgoals = [];
+        localStorage.removeItem("lifeGoal");
+        localStorage.removeItem("subgoals");
+        lifeGoalInputContainer.style.display = "block";
+        lifeGoalInput.value = "";
+        lifeGoalDisplay.textContent = "";
+        renderSubgoals();
+        updateProgress();
+      }
+    }
+
+    function renderSubgoals() {
+      subgoalList.innerHTML = "";
+      subgoals.forEach((sg, i) => {
+        const li = document.createElement("li");
+        li.className = sg.completed ? "completed" : "";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = sg.completed;
+        cb.addEventListener("change", () => {
+          subgoals[i].completed = cb.checked;
+          saveSubgoals();
+          updateProgress();
+          renderSubgoals();
+        });
+        li.appendChild(cb);
+        const text = document.createTextNode(sg.text);
+        li.appendChild(text);
+        // Delete button
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-btn";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => {
+          subgoals.splice(i, 1);
+          saveSubgoals();
+          renderSubgoals();
+          updateProgress();
+        });
+        li.appendChild(delBtn);
+        subgoalList.appendChild(li);
+      });
+    }
+
+    saveLifeGoalBtn.addEventListener("click", saveLifeGoal);
+
+    addSubgoalBtn.addEventListener("click", () => {
+      if (subgoalInput.value.trim() === "") return alert("Please enter a subgoal.");
+      subgoals.push({ text: subgoalInput.value.trim(), completed: false });
+      subgoalInput.value = "";
+      saveSubgoals();
+      renderSubgoals();
+      updateProgress();
+    });
+
+    // Init life goal display
+    if (lifeGoal) {
+      lifeGoalInputContainer.style.display = "none";
+      lifeGoalDisplay.textContent = lifeGoal;
+    }
+    renderSubgoals();
+    updateProgress();
+
+    // ======= DAILY GOALS =======
+    const dailyGoalInput = document.getElementById("daily-goal-input");
+    const fixDailyGoalCheckbox = document.getElementById("fix-daily-goal");
+    const addDailyGoalBtn = document.getElementById("add-daily-goal-btn");
+    const dailyGoalList = document.getElementById("daily-goal-list");
+
+    let dailyGoals = JSON.parse(localStorage.getItem("dailyGoals") || "[]");
+
+    function saveDailyGoals() {
+      localStorage.setItem("dailyGoals", JSON.stringify(dailyGoals));
+    }
+
+    function renderDailyGoals() {
+      dailyGoalList.innerHTML = "";
+      dailyGoals.forEach((goal, i) => {
+        const li = document.createElement("li");
+        li.className = goal.completed ? "completed" : "";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = goal.completed;
+        cb.addEventListener("change", () => {
+          dailyGoals[i].completed = cb.checked;
+          saveDailyGoals();
+          renderDailyGoals();
+          checkDailyGoalsReset();
+        });
+        li.appendChild(cb);
+
+        const text = document.createTextNode(goal.text);
+        li.appendChild(text);
+
+        const fixSpan = document.createElement("span");
+        fixSpan.textContent = goal.fixed ? " (Fixed)" : "";
+        li.appendChild(fixSpan);
+
+        // Delete button for non-fixed goals only
+        if (!goal.fixed) {
+          const delBtn = document.createElement("button");
+          delBtn.className = "delete-btn";
+          delBtn.textContent = "Delete";
+          delBtn.addEventListener("click", () => {
+            dailyGoals.splice(i, 1);
+            saveDailyGoals();
+            renderDailyGoals();
+            checkDailyGoalsReset();
+          });
+          li.appendChild(delBtn);
+        }
+
+        dailyGoalList.appendChild(li);
+      });
+    }
+
+    addDailyGoalBtn.addEventListener("click", () => {
+      const val = dailyGoalInput.value.trim();
+      if (!val) return alert("Please enter a daily goal.");
+      const fixed = fixDailyGoalCheckbox.checked;
+      dailyGoals.push({ text: val, completed: false, fixed: fixed });
+      dailyGoalInput.value = "";
+      fixDailyGoalCheckbox.checked = false;
+      saveDailyGoals();
+      renderDailyGoals();
+    });
+
+    // Reset daily goals at midnight except fixed ones remain but unchecked
+    function resetDailyGoals() {
+      dailyGoals = dailyGoals.filter(goal => goal.fixed);
+      dailyGoals.forEach(goal => (goal.completed = false));
+      saveDailyGoals();
+      renderDailyGoals();
+    }
+
+    function checkDailyGoalsReset() {
+      const allCompleted = dailyGoals.length > 0 && dailyGoals.every(goal => goal.completed);
+      if (allCompleted) {
+        // Automatically reset daily goals
+        setTimeout(() => {
+          resetDailyGoals();
+        }, 1000);
+      }
+    }
+
+    // Reset daily goals at midnight
+    function scheduleDailyReset() {
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0);
+      const msToMidnight = midnight.getTime() - now.getTime();
+
+      setTimeout(() => {
+        resetDailyGoals();
+        scheduleDailyReset();
+      }, msToMidnight + 1000);
+    }
+    scheduleDailyReset();
+
+    renderDailyGoals();
+
+    // ======= WATER INTAKE =======
+    const waterGoalInput = document.getElementById("water-goal-input");
+    const waterAddBtn = document.getElementById("water-add-btn");
+    const waterResetBtn = document.getElementById("water-reset-btn");
+    const waterLevel = document.getElementById("water-level");
+    const waterInfo = document.getElementById("water-info");
+
+    let waterGoal = parseInt(localStorage.getItem("waterGoal")) || 2;
+    let waterCurrent = parseInt(localStorage.getItem("waterCurrent")) || 0;
+
+    waterGoalInput.value = waterGoal;
+
+    function updateWaterLevel() {
+      const percent = Math.min((waterCurrent / waterGoal) * 100, 100);
+      waterLevel.style.height = percent + "%";
+      waterInfo.textContent = `${waterCurrent}L / ${waterGoal}L`;
+    }
+
+    waterAddBtn.addEventListener("click", () => {
+      if (waterCurrent < waterGoal) {
+        waterCurrent++;
+        localStorage.setItem("waterCurrent", waterCurrent);
+        updateWaterLevel();
+      }
+    });
+
+    waterResetBtn.addEventListener("click", () => {
+      waterCurrent = 0;
+      localStorage.setItem("waterCurrent", waterCurrent);
+      updateWaterLevel();
+    });
+
+    waterGoalInput.addEventListener("change", () => {
+      let val = parseInt(waterGoalInput.value);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 20) val = 20;
+      waterGoal = val;
+      localStorage.setItem("waterGoal", waterGoal);
+      updateWaterLevel();
+    });
+
+    updateWaterLevel();
+
+    // ======= FITNESS ROUTINE =======
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    let currentDayIndex = new Date().getDay();
+    const prevDayBtn = document.getElementById("prev-day");
+    const nextDayBtn = document.getElementById("next-day");
+    const dayDisplay = document.getElementById("day-display");
+    const fitnessInput = document.getElementById("fitness-routine-input");
+    const saveFitnessBtn = document.getElementById("save-fitness-btn");
+    function renderDay() {
+      dayDisplay.textContent = days[currentDayIndex];
+      const routine = localStorage.getItem("fitness-" + days[currentDayIndex]) || "";
+      fitnessInput.value = routine;
+    }
+
+    prevDayBtn.addEventListener("click", () => {
+      currentDayIndex = (currentDayIndex + 6) % 7;
+      renderDay();
+    });
+    nextDayBtn.addEventListener("click", () => {
+      currentDayIndex = (currentDayIndex + 1) % 7;
+      renderDay();
+    });
+
+    saveFitnessBtn.addEventListener("click", () => {
+      const routine = fitnessInput.value.trim();
+      localStorage.setItem("fitness-" + days[currentDayIndex], routine);
+      alert("Saved!");
+    });
+
+    renderDay();
+
+    // ======= PRAYER TRACKER =======
+    const prayerBoxes = document.querySelectorAll(".prayer-box");
+    const prayerStatus = JSON.parse(localStorage.getItem("prayerStatus") || "{}");
+
+    function savePrayerStatus() {
+      localStorage.setItem("prayerStatus", JSON.stringify(prayerStatus));
+    }
+
+    function renderPrayerStatus() {
+      prayerBoxes.forEach(box => {
+        const prayer = box.dataset.prayer;
+        const status = prayerStatus[prayer] || false;
+        box.classList.toggle("done", status);
+        box.setAttribute("aria-checked", status ? "true" : "false");
+      });
+    }
+
+    prayerBoxes.forEach(box => {
+      const prayer = box.dataset.prayer;
+      box.addEventListener("click", () => {
+        prayerStatus[prayer] = !prayerStatus[prayer];
+        savePrayerStatus();
+        renderPrayerStatus();
+      });
+    });
+
+    renderPrayerStatus();
+
+    // Daily reset of prayer tracker
+    function resetPrayerStatus() {
+      Object.keys(prayerStatus).forEach(k => (prayerStatus[k] = false));
+      savePrayerStatus();
+      renderPrayerStatus();
+    }
+
+    function schedulePrayerReset() {
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0);
+      const msToMidnight = midnight.getTime() - now.getTime();
+
+      setTimeout(() => {
+        resetPrayerStatus();
+        schedulePrayerReset();
+      }, msToMidnight + 1000);
+    }
+    schedulePrayerReset();
+  </script>
+</body>
+</html>
